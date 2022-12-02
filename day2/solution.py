@@ -23,7 +23,7 @@ def part2(data):
         elif res == 1:
             score += op + 1
         else:
-            score += (op - 1) % 3 + 1
+            score += (op + 2) % 3 + 1
     return score
 
 
