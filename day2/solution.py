@@ -2,52 +2,28 @@ from pathlib import Path
 
 
 def parse(data):
-    return [x.split() for x in data.split("\n")]
+    return [(ord(x[0])-65, ord(x[2])-88) for x in data.split("\n")]
 
 def part1(data):
     score = 0
     for op, you in data:
-        if op == "A" and you == "X":
-            score += 4
-        elif op == "A" and you == "Y":
-            score += 8
-        elif op == "A" and you == "Z":
-            score += 3
-        elif op == "B" and you == "X":
-            score += 1
-        elif op == "B" and you == "Y":
-            score += 5
-        elif op == "B" and you == "Z":
-            score += 9
-        elif op == "C" and you == "X":
-            score += 7
-        elif op == "C" and you == "Y":
-            score += 2
-        elif op == "C" and you == "Z":
+        score += (you + 1)
+        if (op + 1) % 3 == you:
             score += 6
+        elif op == you:
+            score += 3
     return score
 
 def part2(data):
     score = 0
-    for op, you in data:
-        if op == "A" and you == "X":
-            score += 3
-        elif op == "A" and you == "Y":
-            score += 4
-        elif op == "A" and you == "Z":
-            score += 8
-        elif op == "B" and you == "X":
-            score += 1
-        elif op == "B" and you == "Y":
-            score += 5
-        elif op == "B" and you == "Z":
-            score += 9
-        elif op == "C" and you == "X":
-            score += 2
-        elif op == "C" and you == "Y":
-            score += 6
-        elif op == "C" and you == "Z":
-            score += 7
+    for op, res in data:
+        score += res * 3
+        if res == 2:
+            score += (op + 1) % 3 + 1
+        elif res == 1:
+            score += op + 1
+        else:
+            score += (op - 1) % 3 + 1
     return score
 
 
