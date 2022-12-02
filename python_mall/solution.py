@@ -1,13 +1,13 @@
 from pathlib import Path
 
 
-def refactor_data(data):
+def parse(data):
     pass
 
-def part_1(data):
+def part1(data):
     pass
 
-def part_2(data):
+def part2(data):
     pass
 
 
@@ -19,7 +19,7 @@ if __name__ == "__main__":
         path = "indata.txt"
     
     with open(path, "r") as file:
-        data = refactor_data(file.read())
+        data = parse(file.read())
     
-    print(part_1(data))
-    print(part_2(data))
+    print(part1(data))
+    print(part2(data))

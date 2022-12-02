@@ -1,16 +1,16 @@
 from pathlib import Path
 
 
-def refactor_data(data):
+def parse(data):
     return data
 
-def part_1(data):
-    calories = max([sum([int(x) for x in elf.split()]) for elf in data.split("\n\n")])
-    return calories
+def part1(data):
+    elf = max([sum([int(x) for x in elf.split()]) for elf in data.split("\n\n")])
+    return elf
 
-def part_2(data):
-    calories = sorted([sum([int(x) for x in elf.split()]) for elf in data.split("\n\n")])
-    return sum(calories[-3:])
+def part2(data):
+    elfs = sorted([sum([int(x) for x in elf.split()]) for elf in data.split("\n\n")], reverse=True)
+    return sum(elfs[:3])
 
 
 if __name__ == "__main__":
@@ -21,7 +21,7 @@ if __name__ == "__main__":
         path = "indata.txt"
     
     with open(path, "r") as file:
-        data = refactor_data(file.read())
+        data = parse(file.read())
     
-    print(part_1(data))
-    print(part_2(data))
+    print(part1(data))
+    print(part2(data))
