@@ -36,8 +36,7 @@ parse = getattr(module, "parse")
 part1 = getattr(module, "part1")
 part2 = getattr(module, "part2")
 
-with open(f"day{day}/indata.txt", "r") as file:
-    data, refacor_time = timer(parse)(file.read())
+data, refacor_time = timer(parse)()
 part1_res, part1_time = timer(part1)(data)
 part2_res, part2_time = timer(part2)(data)
 

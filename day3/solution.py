@@ -1,43 +1,37 @@
 from pathlib import Path
 
 
-def parse(data):
-    return [(x[:len(x) // 2], x[len(x) // 2 :]) for x in data.split()]
-    
+def get_path():
+    cur_dir = Path().resolve().name
+    if cur_dir == "AoC2022":
+        return f"{Path(__file__).parent.name}/indata.txt"
+    else:
+        return "indata.txt"
 
+def parse():
+    with open(get_path(), "r") as file:
+        data = file.read().split()
+    return data
+    
 def part1(data):
     prio_sum = 0
-    for comp1, comp2 in data:
-        common = [ord(x) for x in set(comp1).intersection(set(comp2))]
-        for val in common:
-            if 65 <= val <= 90:
-                prio_sum += val - 64 + 26
-            if 97 <= val <= 122:
-                prio_sum += val - 96
+    for bag in data:
+        comp1 = set(bag[:len(bag) // 2])
+        comp2 = set(bag[len(bag) // 2:])
+        for val in comp1.intersection(comp2):
+            prio_sum += ord(val) - (38 if ord(val) <= 90 else 96)
     return prio_sum
 
 def part2(data):
     badge_sum = 0
     for i in range(0, len(data), 3):
-        common = set(data[i][0] + data[i][1])
-        for comp1, comp2 in data[i+1:i+3]:
-            common = common.intersection(set(comp1 + comp2))
+        common = set(data[i]).intersection(set(data[i+1])).intersection(set(data[i+2]))
         val = ord(list(common)[0])
-        if 65 <= val <= 90:
-            badge_sum += val - 64 + 26
-        if 97 <= val <= 122:
-            badge_sum += val - 96
+        badge_sum += val - (38 if val <= 90 else 96)
     return badge_sum
 
 
 if __name__ == "__main__":
-    cur_dir = Path().resolve().name
-    if cur_dir == "AoC2022":
-        path = f"{Path(__file__).parent.name}/indata.txt"
-    else:
-        path = "indata.txt"
-    with open(path, "r") as file:
-        data = parse(file.read())
-    
+    data = parse()
     print(part1(data))
     print(part2(data))
