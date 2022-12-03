@@ -6,15 +6,15 @@ using namespace std;
 
 bool descending (int i,int j) { return (i>j); }
 
-int main () {
+vector<int> parse() {
+    ifstream dataFile("indata.txt");
     string line;
     vector<int> elfs;
     int elf = 0;
-    ifstream dataFile("indata.txt");
     
     while (getline(dataFile, line)) {
         if (!line.empty()) {
-            elf = elf + stoi(line);
+            elf += stoi(line);
         } else {
             elfs.push_back(elf);
             elf = 0;
@@ -24,15 +24,45 @@ int main () {
     if (elf) {
         elfs.push_back(elf);
     }
+    return elfs;
+}
 
-    sort(elfs.begin(), elfs.end(), descending);
+int part1(vector<int> elfs) {
+    int max = 0;
+    for (int i : elfs) {
+        if (i > max) {
+            max = i;
+        }
+    }
+    return max;
+}
 
-    // Part 1
-    cout << elfs[0] << endl;
+int part2(vector<int> elfs) {
+    int temp, x = 0, y = 0, z = 0;
+    for (int i : elfs) {
+        if (i > x) {
+            x = i;
+        }
+        if (x > y) {
+            temp = x;
+            x = y;
+            y = temp;
+        }
+        if (y > z) {
+            temp = y;
+            y = z;
+            z = temp;
+        }
+    }
+    return x + y + z;
+}
 
-    // Part 2
-    cout << elfs[0] + elfs[1] + elfs[2] << endl;
-
-
+int main () {
+    vector<int> elfs = parse();
+    int part1_res = part1(elfs);
+    int part2_res = part2(elfs);
+  
+    cout << part1_res << endl << part2_res << endl;
+    
     return 0;
 }
