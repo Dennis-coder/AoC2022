@@ -19,8 +19,8 @@ def parse():
 def part1(data):
     stacks = deepcopy(data[0])
     for move, from_i, to_i in data[1]:
-        for _ in range(move):
-            stacks[to_i].append(stacks[from_i].pop())
+        stacks[to_i] += stacks[from_i][-move:][::-1]
+        stacks[from_i] = stacks[from_i][:-move]
     return "".join([stack[-1] for stack in stacks])
 
 def part2(data):
