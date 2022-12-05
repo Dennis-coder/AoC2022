@@ -18,8 +18,8 @@ def part1(data):
     for bag in data:
         comp1 = set(bag[:len(bag) // 2])
         comp2 = set(bag[len(bag) // 2:])
-        for val in comp1.intersection(comp2):
-            prio_sum += ord(val) - (38 if ord(val) <= 90 else 96)
+        val = list(comp1.intersection(comp2))[0]
+        prio_sum += ord(val) - (38 if ord(val) <= 90 else 96)
     return prio_sum
 
 def part2(data):
