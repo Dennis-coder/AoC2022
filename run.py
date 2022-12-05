@@ -52,3 +52,7 @@ print()
 print("Part 2")
 print(f"Time:   {time_str(part2_time)}")
 print(f"Result: {part2_res}")
+print()
+
+print(f"Total time: {time_str(refacor_time + part1_time + part2_time)}")
+print()
