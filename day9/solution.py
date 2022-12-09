@@ -62,19 +62,6 @@ def part2(data):
     
     return len(visited)
 
-def vizualize_knots(knots):
-    x0 = min([el[0] for el in knots])
-    x1 = max([el[0] for el in knots])
-    y0 = min([el[1] for el in knots])
-    y1 = max([el[1] for el in knots])
-    for y in range(y1, y0 - 1, -1):
-        row = ""
-        for x in range(x0, x1 + 1):
-            if [x, y] in knots:
-                row += "#"
-            else:
-                row += "."
-        print(row)
 
 if __name__ == "__main__":
     data = parse()
