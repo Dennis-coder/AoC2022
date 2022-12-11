@@ -2,25 +2,6 @@ from pathlib import Path
 from math import prod
 
 
-class Monkey:
-    def __init__(self, data: str):
-        self.data = data.splitlines()
-        
-    def reset(self):
-        self.items = [int(item) for item in self.data[1].replace("Starting items: ", "").split(", ")]
-        self.op = "".join(self.data[2].replace("Operation: new = ", "").split())
-        self.test_op = int(self.data[3].split()[-1])
-        self.if_true = int(self.data[4].split()[-1])
-        self.if_false = int(self.data[5].split()[-1])
-        self.inspections = 0
-
-    def apply_operation(self):
-        self.inspections += len(self.items)
-        self.items = [eval(self.op) for old in self.items]
-    
-    def test(self, val):
-        return self.if_true if val % self.test_op == 0 else self.if_false
-
 def get_path():
     cur_dir = Path().resolve().name
     if cur_dir == "AoC2022":
@@ -30,37 +11,53 @@ def get_path():
 
 def parse():
     with open(get_path(), "r") as file:
-        data = [Monkey(monkey) for monkey in file.read().split("\n\n")]
+        data = [monkey.splitlines() for monkey in file.read().split("\n\n")]
+
+    for i, monkey_data in enumerate(data):
+        items = []
+        op_str = "".join(monkey_data[2].replace("Operation: new = ", "").split())
+        test_op = int(monkey_data[3].split()[-1])
+        if_true = int(monkey_data[4].split()[-1])
+        if_false = int(monkey_data[5].split()[-1])
+        start_items = tuple([int(item) for item in monkey_data[1].replace("Starting items: ", "").split(", ")])
+        data[i] = (items, op_str, test_op, if_true, if_false, start_items)
+
     return data
 
 def part1(monkeys):
-    for monkey in monkeys:
-        monkey.reset()
+    for items, *_, start_items in monkeys:
+        items.clear()
+        items += list(start_items)
+
+    inspections = [0] * len(monkeys)
     for _ in range(20):
-        for monkey in monkeys:
-            monkey.apply_operation()
-            for item in monkey.items:
-                to_monkey = monkey.test(item // 3)
-                monkeys[to_monkey].items.append(item // 3)
-            monkey.items = []
-    nr_of_inspections = sorted([x.inspections for x in monkeys], reverse=True)
+        for i, (items, op_str, test_op, if_true, if_false, _) in enumerate(monkeys):
+            inspections[i] += len(items)
+            for old in items:
+                new = eval(op_str) // 3
+                to_monkey = if_true if new % test_op == 0 else if_false
+                monkeys[to_monkey][0].append(new)
+            items.clear()
+    nr_of_inspections = sorted(inspections, reverse=True)
     return nr_of_inspections[0] * nr_of_inspections[1]
 
 
 def part2(monkeys):
-    for monkey in monkeys:
-        monkey.reset()
-    
-    lcd = prod([monkey.test_op for monkey in monkeys])
+    for items, *_, start_items in monkeys:
+        items.clear()
+        items += list(start_items)
 
+    lcd = prod([monkey[2] for monkey in monkeys])
+    inspections = [0] * len(monkeys)
     for _ in range(10000):
-        for monkey in monkeys:
-            monkey.apply_operation()
-            for item in monkey.items:
-                to_monkey = monkey.test(item % lcd)
-                monkeys[to_monkey].items.append(item % lcd)
-            monkey.items = []
-    nr_of_inspections = sorted([x.inspections for x in monkeys], reverse=True)
+        for i, (items, op_str, test_op, if_true, if_false, _) in enumerate(monkeys):
+            inspections[i] += len(items)
+            for old in items:
+                new = eval(op_str) % lcd
+                to_monkey = if_true if new % test_op == 0 else if_false
+                monkeys[to_monkey][0].append(new)
+            items.clear()
+    nr_of_inspections = sorted(inspections, reverse=True)
     return nr_of_inspections[0] * nr_of_inspections[1]
 
 
