@@ -17,21 +17,21 @@ def parse():
 def part1(data):
     sum_of_indices = 0
     for i, (left, right) in enumerate(data):
-        if compare(left, right) == 1:
+        if is_ordered(left, right):
             sum_of_indices += i + 1
     return sum_of_indices
 
-def compare(left, right):
+def is_ordered(left, right):
     if isinstance(left, int) and isinstance(right, int):
-        return 1 if left < right else 2 if left == right else 3
+        return 1 if left < right else 2 if left == right else 0
     if isinstance(left, int):
-        return compare([left], right)
+        return is_ordered([left], right)
     if isinstance(right, int):
-        return compare(left, [right])
+        return is_ordered(left, [right])
 
     i = 0
     while i < len(left) and i < len(right):
-        res = compare(left[i], right[i])
+        res = is_ordered(left[i], right[i])
         if res != 2:
             return res
         i += 1
@@ -40,25 +40,23 @@ def compare(left, right):
     if i == len(left):
         return 1
     if i == len(right):
-        return 3
+        return 0
         
-
 def part2(data):
-    flat_list = []
     divider_packet_1 = [[2]]
     divider_packet_2 = [[6]]
-    flat_list.append(divider_packet_1)
-    flat_list.append(divider_packet_2)
-    for a, b in data:
-        flat_list.append(a)
-        flat_list.append(b)
+    flat_list = [divider_packet_1, divider_packet_2]
+    for pair in data:
+        flat_list += pair
     
     for i in range(len(flat_list)):
-        for j in range(len(flat_list) - 1 - i):
-            if compare(flat_list[j], flat_list[j + 1]) != 1:
-                flat_list[j], flat_list[j + 1] = flat_list[j + 1], flat_list[j]
+        for j in range(i - 1, -1, -1):
+            if is_ordered(flat_list[j], flat_list[j + 1]):
+                break
+            flat_list[j], flat_list[j + 1] = flat_list[j + 1], flat_list[j]
     
     return (flat_list.index(divider_packet_1) + 1) * (flat_list.index(divider_packet_2) + 1)
+
 
 if __name__ == "__main__":
     data = parse()
