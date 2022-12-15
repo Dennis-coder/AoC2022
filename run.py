@@ -29,6 +29,9 @@ def time_str(time):
 if len(sys.argv) < 2:
     print("Need to specify which day you want to run")
     sys.exit()
+elif not sys.argv[1].isnumeric():
+    print("first argument should be a number between 1-25")
+    sys.exit()
 day = int(sys.argv[1])
 
 module = import_module(f"day{day}.solution")
