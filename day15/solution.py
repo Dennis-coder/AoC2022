@@ -23,10 +23,18 @@ def parse():
 def manhattan(p, q):
     return abs(p[0] - q[0]) + abs(p[1] - q[1])
 
+def merge_intervals(intervals):
+    sorted_intervals = sorted(intervals, key=lambda x: x[0])
+    merged_intervals = [sorted_intervals[0]]
+    for i in sorted_intervals[1:]:
+        if merged_intervals[-1][0] <= i[0] <= merged_intervals[-1][-1]:
+            merged_intervals[-1][-1] = max(merged_intervals[-1][-1], i[-1])
+        else:
+            merged_intervals.append(i)
+    return merged_intervals
+
 def part1(data):
-    cannot_contain = set()
-    sensors = set([sensor for sensor, _ in data])
-    beacons = set([beacon for _, beacon in data])
+    intervals = []
     y = 2000000
     for sensor, closest_beacon in data:
         max_distance = manhattan(sensor, closest_beacon)
@@ -34,29 +42,31 @@ def part1(data):
         if distance_to_y > max_distance:
             continue
         steps = max_distance - distance_to_y
-        for x in range(sensor[0] - steps, sensor[0] + steps + 1):
-            cannot_contain.add((x, y))
-    return len(cannot_contain.difference(sensors, beacons))
+        intervals.append([sensor[0] - steps, sensor[0] + steps])
+
+    cannot_contain = sum([x2 - x1 + 1 for x1, x2 in merge_intervals(intervals)])
+    sensors_on_y = sum([1 for sensor in set([sensor for sensor, _ in data]) if sensor[1] == y])
+    beacons_on_y = sum([1 for beacon in set([beacon for _, beacon in data]) if beacon[1] == y])
+
+    return cannot_contain - sensors_on_y - beacons_on_y
             
 
 def part2(data):
-    can_contain = set()
     max_val = 4000000
-    for sensor, closest_beacon in data:
-        distance = manhattan(sensor, closest_beacon) + 1
-        for y in range(max(0, sensor[1] - distance), min(max_val, sensor[1] + distance + 1)):
-            steps_x = distance - abs(y - sensor[1])
-            if 0 <= sensor[0] - steps_x <= max_val:
-                can_contain.add((sensor[0] - steps_x, y))
-            if 0 <= sensor[0] + steps_x <= max_val:
-                can_contain.add((sensor[0] + steps_x, y))
-    
-    for sensor, closest_beacon in data:
-        distance = manhattan(sensor, closest_beacon)
-        can_contain = {possible_pos for possible_pos in can_contain if distance < manhattan(sensor, possible_pos)}
+    for y in range(max_val + 1):
+        intervals = []
+        for sensor, closest_beacon in data:
+            max_distance = manhattan(sensor, closest_beacon)
+            distance_to_y = abs(y - sensor[1])
+            if distance_to_y > max_distance:
+                continue
+            steps = max_distance - distance_to_y
+            interval = [max(0, sensor[0] - steps), min(max_val, sensor[0] + steps)]
+            intervals.append(interval)
 
-    x, y = list(can_contain)[0]
-    return x * 4000000 + y
+        intervals = merge_intervals(intervals)
+        if len(intervals) == 2:
+            return (intervals[0][1] + 1) * 4000000 + y
 
 
 if __name__ == "__main__":
