@@ -1,11 +1,6 @@
 from pathlib import Path
 import re
-from collections import namedtuple
-from queue import PriorityQueue, Queue
-from typing import Set, List
-
-State1 = namedtuple("State1", "pressure, v, t, opened, prev")
-State2 = namedtuple("State2", "pressure, v1, v2, t1, t2, opened, prev")
+from queue import Queue
 
 def get_path():
     cur_dir = Path().resolve().name
@@ -54,89 +49,40 @@ def parse():
 
     return flow_rates, dists
 
+def all_orders(dists, valve, time, todo, path):
+    for next_valve in todo:
+        cost = dists[valve][next_valve] + 1
+        if cost < time:
+            yield from all_orders(dists, next_valve, time - cost, todo - {next_valve}, path + [next_valve])
+    yield path
+    
+def calc_order(flow_rates, dists, start, order, time):
+    pressure = 0
+    cur = start
+    for valve in order:
+        time -= dists[cur][valve] + 1
+        pressure += time * flow_rates[valve]
+        cur = valve
+    return pressure
+
 def part1(data):
     flow_rates, dists = data
-
-    start = State1(0, "AA", 30, set(), None)
-    best = start
-    visited_states = set()
-    pq: PriorityQueue[State1] = PriorityQueue()
-    pq.put(best)
-    while not pq.empty():
-        state = pq.get()
-        best = state if state.pressure < best.pressure else best
-        if (state.v, state.pressure, state.t) in visited_states:
-            continue
-        visited_states.add((state.v, state.pressure, state.t))
-
-
-        new_states = [
-            state._replace(
-                pressure=state.pressure - (state.t - dist - 1) * flow_rates[valve],
-                v=valve, 
-                t=state.t - dist - 1, 
-                opened={*state.opened, valve},
-                prev=state
-            )
-            for valve, dist in dists[state.v].items() 
-            if valve not in state.opened and dist <= state.t
-        ]
-        
-        for new_state in new_states:
-            pq.put(new_state)
-
-
-    print_path(best)
-    return -best.pressure
-
-def print_path(state):
-    if state.prev:
-        print_path(state.prev)
-    print(state._replace(pressure=-state.pressure, prev=None))
-
+    orders = all_orders(dists, "AA", 30, {valve for valve, flow_rate in flow_rates.items() if flow_rate}, [])
+    return max(calc_order(flow_rates, dists, "AA", order, 30) for order in orders)
+    
 def part2(data):
     flow_rates, dists = data
+    orders = all_orders(dists, "AA", 26, {valve for valve, flow_rate in flow_rates.items() if flow_rate}, [])
+    scores = [(calc_order(flow_rates, dists, "AA", order, 26), set(order)) for order in orders]
+    scores.sort(key=lambda x: x[0], reverse=True)
 
-    start = State2(0, "AA", "AA", 26, 26, set(), None)
-    best = start
-    visited_states = set()
-    pq: PriorityQueue[State2] = PriorityQueue()
-    pq.put(best)
-    while not pq.empty():
-        state = pq.get()
-        best = state if state.pressure < best.pressure else best
-        if (state.v1, state.v2, state.pressure, state.t1, state.t2) in visited_states:
-            continue
-        visited_states.add((state.v1, state.v2, state.pressure, state.t1, state.t2))
-
-        
-        new_states = [
-            state._replace(
-                pressure=state.pressure - (state.t1 - dist - 1) * flow_rates[valve],
-                v1=valve, 
-                t1=state.t1 - dist - 1, 
-                opened={*state.opened, valve},
-                prev=state
-            )
-            for valve, dist in dists[state.v1].items() 
-            if valve not in state.opened and dist <= state.t1
-        ] if state.t1 >= state.t2 else [
-            state._replace(
-                pressure=state.pressure - (state.t2 - dist - 1) * flow_rates[valve],
-                v2=valve, 
-                t2=state.t2 - dist - 1, 
-                opened={*state.opened, valve},
-                prev=state
-            )
-            for valve, dist in dists[state.v2].items() 
-            if valve not in state.opened and dist <= state.t2
-        ]
-
-        for new_state in new_states:
-            pq.put(new_state)
-
-    print_path(best)
-    return -best.pressure
+    best = 0
+    for i, (score1, order1) in enumerate(scores):
+        if score1 * 2 < best:
+            return best
+        for score2, order2 in scores[i+1:]:
+            if not order1 & order2:
+                best = max(best, score1 + score2)
 
 if __name__ == "__main__":
     data = parse()
