@@ -1,129 +1,11 @@
 from pathlib import Path
 import re
-from queue import Queue
-from dataclasses import dataclass
-from functools import total_ordering
+from collections import namedtuple
+from queue import PriorityQueue, Queue
 from typing import Set, List
-from heapq import heappop, heappush
 
-
-@total_ordering
-@dataclass
-class State1:
-    valve: str
-    ppm: int
-    pressure: int
-    opened: Set
-    minutes: int
-    estimated_pressure: int
-
-    def open_valve(self, flow_rates, max_ppm) -> 'State1':
-        return State1(
-            self.valve,
-            self.ppm + flow_rates[self.valve],
-            self.pressure,
-            {self.valve, *self.opened},
-            self.minutes,
-            self.pressure + max_ppm * self.minutes
-        )
-    
-    def move_to(self, valve, max_ppm) -> 'State1':
-        return State1(
-            valve,
-            self.ppm,
-            self.pressure,
-            self.opened,
-            self.minutes,
-            self.pressure + max_ppm * self.minutes
-        )
-    
-    def all_opened(self) -> 'State1':
-        return State1(
-            self.valve, 
-            self.ppm, 
-            self.pressure + self.ppm * self.minutes, 
-            self.opened, 
-            0, 
-            self.pressure + self.ppm * self.minutes
-        )
-
-    def __lt__(self, other: 'State1'):
-        return self.estimated_pressure > other.estimated_pressure
-    
-    def id(self) -> tuple:
-        return (self.valve, self.ppm, self.pressure)
-
-@total_ordering
-@dataclass
-class State2:
-    valve1: str
-    valve2: str
-    ppm: int
-    pressure: int
-    opened: Set
-    minutes: int
-    estimated_pressure: int
-
-    def open_both_valves(self, flow_rates, max_ppm) -> 'State2':
-        return State2(
-            self.valve1,
-            self.valve2,
-            self.ppm + flow_rates[self.valve1] + flow_rates[self.valve2],
-            self.pressure,
-            {self.valve1, self.valve2, *self.opened},
-            self.minutes,
-            self.pressure + max_ppm * self.minutes
-        )
-    
-    def open_valve1_move_valve2(self, valve2, flow_rates, max_ppm) -> 'State2':
-        return State2(
-            self.valve1,
-            valve2,
-            self.ppm + flow_rates[self.valve1],
-            self.pressure,
-            {self.valve1, *self.opened},
-            self.minutes,
-            self.pressure + max_ppm * self.minutes
-        )
-    
-    def move_valve1_open_valve2(self, valve1, flow_rates, max_ppm) -> 'State2':
-        return State2(
-            valve1,
-            self.valve2,
-            self.ppm + flow_rates[self.valve2],
-            self.pressure,
-            {self.valve2, *self.opened},
-            self.minutes,
-            self.pressure + max_ppm * self.minutes
-        )
-    
-    def move_both_valves(self, valve1, valve2, max_ppm) -> 'State2':
-        return State2(
-            valve1,
-            valve2,
-            self.ppm,
-            self.pressure,
-            self.opened,
-            self.minutes,
-            self.pressure + max_ppm * self.minutes
-        )
-    
-    def all_opened(self) -> 'State2':
-        return State2(
-            self.valve1, 
-            self.valve2, 
-            self.ppm, 
-            self.pressure + self.ppm * self.minutes, 
-            self.opened, 
-            0, 
-            self.pressure + self.ppm * self.minutes
-        )
-
-    def __lt__(self, other: 'State2'):
-        return self.estimated_pressure > other.estimated_pressure
-
-    def id(self) -> tuple:
-        return ((self.valve1, self.valve2) if self.valve1 < self.valve2 else (self.valve2, self.valve1), self.ppm, self.pressure)
+State1 = namedtuple("State1", "pressure, v, t, opened, prev")
+State2 = namedtuple("State2", "pressure, v1, v2, t1, t2, opened, prev")
 
 def get_path():
     cur_dir = Path().resolve().name
@@ -131,6 +13,21 @@ def get_path():
         return f"{Path(__file__).parent.name}/indata.txt"
     else:
         return "indata.txt"
+
+def calc_dist(tunnels, from_valve, to_valve):
+    bfs = Queue()
+    visited = set()
+    bfs.put((from_valve, 0))
+    while bfs.qsize():
+        valve, steps = bfs.get()
+        if valve in visited:
+            continue
+        if valve == to_valve:
+            return steps
+        visited.add(valve)
+        steps += 1
+        for n_valve in tunnels[valve]:
+            bfs.put((n_valve, steps))
 
 def parse():
     with open(get_path(), "r") as file:
@@ -143,80 +40,103 @@ def parse():
                 for line in file.read().split("\n")
             )
         }
-    return (
-        {k: v["flow_rate"] for k, v in data.items()}, 
-        {k: v["tunnels"] for k, v in data.items()}
-    )
+
+    flow_rates = {k: v["flow_rate"] for k, v in data.items()}
+    tunnels = {k: v["tunnels"] for k, v in data.items()}
+
+    valves_with_flow = [k for k, v in flow_rates.items() if v]
+
+    dists = {a: {b: 1000 for b in valves_with_flow} for a in (["AA"] + valves_with_flow) }
+
+    for from_valve, valves_to_calc in dists.items():
+        for to_valve in valves_to_calc.keys():
+            dists[from_valve][to_valve] = calc_dist(tunnels, from_valve, to_valve)
+
+    return flow_rates, dists
 
 def part1(data):
-    flow_rates, tunnels = data
-    valves = sum([1 for flow_Rate in flow_rates.values() if flow_Rate])
-    max_ppm = sum([flow_Rate for flow_Rate in flow_rates.values()])
+    flow_rates, dists = data
+
+    start = State1(0, "AA", 30, set(), None)
+    best = start
     visited_states = set()
-
-    heap: List[State1] = [State1("AA", 0, 0, set(), 30, max_ppm * 30)]
-    while len(heap):
-        state = heappop(heap)
-        if state.minutes == 0:
-            return state.pressure
-        if state.id() in visited_states:
+    pq: PriorityQueue[State1] = PriorityQueue()
+    pq.put(best)
+    while not pq.empty():
+        state = pq.get()
+        best = state if state.pressure < best.pressure else best
+        if (state.v, state.pressure, state.t) in visited_states:
             continue
-        visited_states.add(state.id())
-        if len(state.opened) == valves:
-            heappush(heap, state.all_opened())
-            continue
+        visited_states.add((state.v, state.pressure, state.t))
 
-        state.minutes -= 1
-        state.pressure += state.ppm
 
-        if state.valve not in state.opened \
-        and flow_rates[state.valve]:
-            heappush(heap, state.open_valve(flow_rates, max_ppm))
+        new_states = [
+            state._replace(
+                pressure=state.pressure - (state.t - dist - 1) * flow_rates[valve],
+                v=valve, 
+                t=state.t - dist - 1, 
+                opened={*state.opened, valve},
+                prev=state
+            )
+            for valve, dist in dists[state.v].items() 
+            if valve not in state.opened and dist <= state.t
+        ]
+        
+        for new_state in new_states:
+            pq.put(new_state)
 
-        for valve in tunnels[state.valve]:
-            heappush(heap, state.move_to(valve, max_ppm))
+
+    print_path(best)
+    return -best.pressure
+
+def print_path(state):
+    if state.prev:
+        print_path(state.prev)
+    print(state._replace(pressure=-state.pressure, prev=None))
 
 def part2(data):
-    flow_rates, tunnels = data
-    valves = sum([1 for flow_Rate in flow_rates.values() if flow_Rate])
-    max_ppm = sum([flow_Rate for flow_Rate in flow_rates.values()])
+    flow_rates, dists = data
+
+    start = State2(0, "AA", "AA", 26, 26, set(), None)
+    best = start
     visited_states = set()
-
-    heap: List[State2] = [State2("AA", "AA", 0, 0, set(), 26, max_ppm * 26)]
-    while len(heap):
-        state = heappop(heap)
-        if state.minutes == 0:
-            return state.pressure
-        if state.id() in visited_states:
+    pq: PriorityQueue[State2] = PriorityQueue()
+    pq.put(best)
+    while not pq.empty():
+        state = pq.get()
+        best = state if state.pressure < best.pressure else best
+        if (state.v1, state.v2, state.pressure, state.t1, state.t2) in visited_states:
             continue
-        visited_states.add(state.id())
-        if len(state.opened) == valves:
-            heappush(heap, state.all_opened())
-            continue
+        visited_states.add((state.v1, state.v2, state.pressure, state.t1, state.t2))
 
-        state.minutes -= 1
-        state.pressure += state.ppm
+        
+        new_states = [
+            state._replace(
+                pressure=state.pressure - (state.t1 - dist - 1) * flow_rates[valve],
+                v1=valve, 
+                t1=state.t1 - dist - 1, 
+                opened={*state.opened, valve},
+                prev=state
+            )
+            for valve, dist in dists[state.v1].items() 
+            if valve not in state.opened and dist <= state.t1
+        ] if state.t1 >= state.t2 else [
+            state._replace(
+                pressure=state.pressure - (state.t2 - dist - 1) * flow_rates[valve],
+                v2=valve, 
+                t2=state.t2 - dist - 1, 
+                opened={*state.opened, valve},
+                prev=state
+            )
+            for valve, dist in dists[state.v2].items() 
+            if valve not in state.opened and dist <= state.t2
+        ]
 
-        if state.valve1 not in state.opened \
-        and flow_rates[state.valve1] \
-        and state.valve2 not in state.opened \
-        and flow_rates[state.valve2] \
-        and state.valve1 != state.valve2:
-            heappush(heap, state.open_both_valves(flow_rates, max_ppm))
+        for new_state in new_states:
+            pq.put(new_state)
 
-        if state.valve1 not in state.opened \
-        and flow_rates[state.valve1]:
-            for valve2 in tunnels[state.valve2]:
-                heappush(heap, state.open_valve1_move_valve2(valve2, flow_rates, max_ppm))
-
-        if state.valve2 not in state.opened \
-        and flow_rates[state.valve2]:
-            for valve1 in tunnels[state.valve1]:
-                heappush(heap, state.move_valve1_open_valve2(valve1, flow_rates, max_ppm))
-
-        for valve1 in tunnels[state.valve1]:
-            for valve2 in tunnels[state.valve2]:
-                heappush(heap, state.move_both_valves(valve1, valve2, max_ppm))
+    print_path(best)
+    return -best.pressure
 
 if __name__ == "__main__":
     data = parse()
