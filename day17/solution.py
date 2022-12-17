@@ -75,12 +75,12 @@ def move_right(shape):
 def move_down(shape):
     return set((x,y-1) for x,y in shape)
 
-def is_valid_move(game, shape, floor, walls):
+def is_valid_move(game, shape):
     for point in shape:
         if point in game: return False
-        if point[0] == walls[0]: return False
-        if point[0] == walls[1]: return False
-        if point[1] == floor: return False
+        if point[0] == -1: return False
+        if point[0] == 7: return False
+        if point[1] == 0: return False
     return True
 
 def get_path():
@@ -92,15 +92,7 @@ def get_path():
 
 def parse():
     with open(get_path(), "r") as file:
-        data = file.read().strip()
-    return data
-
-def part1(data):
-    i_shape = 0
-    i_jet = 0
-    y = 0
-    walls=(-1, 7)
-    game = set()
+        data = [move_left if char == "<" else move_right for char in file.read().strip()]
     shape_switch = {
         0: Shape1,
         1: Shape2,
@@ -108,18 +100,25 @@ def part1(data):
         3: Shape4,
         4: Shape5,
     }
+    return data, shape_switch
+
+def part1(data):
+    moves, shapes = data
+    i_shape = 0
+    i_jet = 0
+    y = 0
+    game = set()
     while i_shape < 2022:
-        shape = shape_switch[i_shape%5](y+4)
+        shape = shapes[i_shape%5](y+4)
         i_shape += 1
         while True:
-            movement = move_left if data[i_jet%len(data)] == "<" else move_right
-            new_shape = movement(shape)
-            i_jet += 1
-            if is_valid_move(game, new_shape, 0, walls):
+            new_shape = moves[i_jet](shape)
+            i_jet = (i_jet + 1) % len(moves)
+            if is_valid_move(game, new_shape):
                 shape = new_shape
             
             new_shape = move_down(shape)
-            if is_valid_move(game, new_shape, 0, walls):
+            if is_valid_move(game, new_shape):
                 shape = new_shape
             else:
                 break
@@ -130,45 +129,36 @@ def part1(data):
     return y
 
 def part2(data):
+    moves, shapes = data
     i_shape = 0
-    i_jet = 0
+    i_moves = 0
     y = 0
-    walls=(-1, 7)
     game = set()
-    shape_switch = {
-        0: Shape1,
-        1: Shape2,
-        2: Shape3,
-        3: Shape4,
-        4: Shape5,
-    }
+
     cycles = {}
     cycle = 0
     y_vals = {}
 
-    while i_jet < len(data) * 2:
+    while i_moves < len(moves) * 1.5:
         y_vals[i_shape] = y
-        key = (i_shape % 5, i_jet % len(data))
+        key = (i_shape % 5, i_moves % len(moves))
         if key in cycles:
             cycle = cycles[key], (i_shape, y)
         cycles[key] = (i_shape, y)
-        shape = shape_switch[i_shape%5](y+4)
+        shape = shapes[i_shape%5](y+4)
         i_shape += 1
         while True:
-            movement = move_left if data[i_jet%len(data)] == "<" else move_right
-            new_shape = movement(shape)
-            i_jet += 1
-            if is_valid_move(game, new_shape, 0, walls):
+            new_shape = moves[i_moves % len(moves)](shape)
+            i_moves += 1 
+            if is_valid_move(game, new_shape):
                 shape = new_shape
             
             new_shape = move_down(shape)
-            if is_valid_move(game, new_shape, 0, walls):
+            if is_valid_move(game, new_shape):
                 shape = new_shape
             else:
                 break
         for point in shape:
-            if len([1 for x in range(7) if (x,point[1]) in game]) == 7:
-                print(f"full row at y={point[1]}")
             game.add(point)
             y = max(y, point[1])
     
