@@ -139,7 +139,7 @@ def part2(data):
     cycle = 0
     y_vals = {}
 
-    while i_moves < len(moves) * 1.5:
+    while i_moves < 2000 or i_moves < len(moves) * 1.5:
         y_vals[i_shape] = y
         key = (i_shape % 5, i_moves % len(moves))
         if key in cycles:
