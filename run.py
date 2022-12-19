@@ -81,12 +81,42 @@ def bench_one(day):
     print(f"Total time: {time_str(refacor_time + part1_time + part2_time)}")
     print()
 
+def bench_part1(day):
+    module = import_module(f"day{day}.solution")
+    parse = getattr(module, "parse")
+    part1 = getattr(module, "part1")
+
+    data, _ = timer(parse)()
+    
+    print("Part 1")
+    part1_res, part1_time = timer(part1)(data)
+    print(f"Time:   {time_str(part1_time)}")
+    print(f"Result: {part1_res}")
+    print()
+
+def bench_part2(day):
+    module = import_module(f"day{day}.solution")
+    parse = getattr(module, "parse")
+    part2 = getattr(module, "part2")
+
+    data, _ = timer(parse)()
+    
+    print("Part 2")
+    part2_res, part2_time = timer(part2)(data)
+    print(f"Time:   {time_str(part2_time)}")
+    print(f"Result: {part2_res}")
+    print()
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Need to specify which day you want to run")
     elif sys.argv[1].lower() == "all":
         bench_all()
-    elif not sys.argv[1].isnumeric():
+    elif not sys.argv[1].isnumeric() or not (1 <= int(sys.argv[1]) <= 25):
         print("The argument should be a number between 1-25 or 'all'")
-    else:
+    elif len(sys.argv) == 2:
         bench_one(int(sys.argv[1]))
+    elif sys.argv[2] == "part1":
+        bench_part1(int(sys.argv[1]))
+    elif sys.argv[2] == "part2":
+        bench_part2(int(sys.argv[1]))
