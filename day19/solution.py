@@ -1,13 +1,7 @@
 from pathlib import Path
 import re
-from collections import namedtuple
-from math import ceil
-from typing import List
-import heapq
+from math import ceil, prod
 
-Blueprint = namedtuple("Blueprint", "id,ore_robot_cost,clay_robot_cost,obsidian_robot_ore_cost,obsidian_robot_clay_cost,geode_robot_ore_cost,geode_robot_obsidian_cost")
-
-State = namedtuple("State", "ore_robots,clay_robots,obsidian_robots,geode_robots,ores,clay,obsidian,geodes,time_left,prev")
 
 def get_path():
     cur_dir = Path().resolve().name
@@ -20,194 +14,106 @@ def parse():
     pattern = re.compile("Blueprint (\d+): Each ore robot costs (\d+) ore. Each clay robot costs (\d+) ore. Each obsidian robot costs (\d+) ore and (\d+) clay. Each geode robot costs (\d+) ore and (\d+) obsidian.")
     with open(get_path(), "r") as file:
         data = [
-            Blueprint(
-                *[
-                    int(x) 
-                    for x in re.fullmatch(pattern, line).groups()
-                ]
-            ) 
+            [
+                int(x) 
+                for x in re.fullmatch(pattern, line).groups()
+            ]
             for line in file.read().split("\n")
         ]
     return data
 
-def part1(data: List[Blueprint]):
-    sum_quality_levels = 0
+def buy_robot(robots, ore=False, clay=False, obsidian=False, geode=False):
+        return (robots[0] + ore, robots[1] + clay, robots[2] + obsidian, robots[3] + geode)
 
-    for bp in data:
-        max_geodes = 0
-        dfs = [State(1, 0, 0, 0, 0, 0, 0, 0, 24, None)]
-        max_ore_robots = max(bp.ore_robot_cost, bp.clay_robot_cost, bp.obsidian_robot_ore_cost, bp.geode_robot_ore_cost)
-        max_clay_robots = bp.obsidian_robot_clay_cost
-        max_obsidian_robots = bp.geode_robot_obsidian_cost
-        while len(dfs):
-            state = dfs.pop()
-            max_geodes = max(max_geodes, state.geodes + state.geode_robots * state.time_left)
-            
-            if state.ore_robots and state.ore_robots < max_ore_robots: # buy ore-collecting robot
-                ore_needed = bp.ore_robot_cost - state.ores
-                time_needed = ceil(ore_needed / state.ore_robots) + 1
-                time_needed = time_needed if time_needed > 0 else 1
-                if state.time_left >= time_needed:
-                    dfs.append(state._replace(
-                        ore_robots=state.ore_robots + 1,
-                        ores=state.ores + state.ore_robots * time_needed - bp.ore_robot_cost,
-                        clay=state.clay + state.clay_robots * time_needed,
-                        obsidian=state.obsidian + state.obsidian_robots * time_needed,
-                        geodes=state.geodes + state.geode_robots * time_needed,
-                        time_left=state.time_left - time_needed,
-                        prev=state
-                    ))
-            
-            if state.ore_robots and state.clay_robots < max_clay_robots: # buy clay-collecting robot
-                ore_needed = bp.clay_robot_cost - state.ores
-                time_needed = ceil(ore_needed / state.ore_robots) + 1
-                time_needed = time_needed if time_needed > 0 else 1
-                if state.time_left >= time_needed:
-                    dfs.append(state._replace(
-                        clay_robots=state.clay_robots + 1,
-                        ores=state.ores + state.ore_robots * time_needed - bp.clay_robot_cost,
-                        clay=state.clay + state.clay_robots * time_needed,
-                        obsidian=state.obsidian + state.obsidian_robots * time_needed,
-                        geodes=state.geodes + state.geode_robots * time_needed,
-                        time_left=state.time_left - time_needed,
-                        prev=state
-                    ))
-            
-            if state.ore_robots and state.clay_robots and state.obsidian_robots < max_obsidian_robots: # buy obsidian-collecting robot
-                ore_needed = bp.obsidian_robot_ore_cost - state.ores
-                clay_needed = bp.obsidian_robot_clay_cost - state.clay
-                time_needed = max(
-                    ceil(ore_needed / state.ore_robots),
-                    ceil(clay_needed / state.clay_robots)
-                ) + 1
-                time_needed = time_needed if time_needed > 0 else 1
-                if state.time_left >= time_needed:
-                    dfs.append(state._replace(
-                        obsidian_robots=state.obsidian_robots + 1,
-                        ores=state.ores + state.ore_robots * time_needed - bp.obsidian_robot_ore_cost,
-                        clay=state.clay + state.clay_robots * time_needed - bp.obsidian_robot_clay_cost,
-                        obsidian=state.obsidian + state.obsidian_robots * time_needed,
-                        geodes=state.geodes + state.geode_robots * time_needed,
-                        time_left=state.time_left - time_needed,
-                        prev=state
-                    ))
-
-            if state.ore_robots and state.obsidian_robots: # buy geode-cracking robot
-                ore_needed = bp.geode_robot_ore_cost - state.ores
-                obsidian_needed = bp.geode_robot_obsidian_cost - state.obsidian
-                time_needed = max(
-                    ceil(ore_needed / state.ore_robots),
-                    ceil(obsidian_needed / state.obsidian_robots)
-                ) + 1
-                time_needed = time_needed if time_needed > 0 else 1
-                if state.time_left >= time_needed:
-                    dfs.append(state._replace(
-                        geode_robots=state.geode_robots + 1,
-                        ores=state.ores + state.ore_robots * time_needed - bp.geode_robot_ore_cost,
-                        clay=state.clay + state.clay_robots * time_needed,
-                        obsidian=state.obsidian + state.obsidian_robots * time_needed - bp.geode_robot_obsidian_cost,
-                        geodes=state.geodes + state.geode_robots * time_needed,
-                        time_left=state.time_left - time_needed,
-                        prev=state
-                    ))
-           
-        sum_quality_levels += bp.id * max_geodes
-
-    return sum_quality_levels
-
-def guess_geodes(state: State):
+def update_materials(materials, robots, time, ore=0, clay=0, obsidian=0):
     return (
-        state.geodes + 
-        state.geode_robots * state.time_left +
-        state.time_left * (state.time_left + 1) // 2
+        materials[0] + robots[0] * time - ore,
+        materials[1] + robots[1] * time - clay,
+        materials[2] + robots[2] * time - obsidian,
+        materials[3] + robots[3] * time
     )
 
-def part2(data):
-    prod = 1
-    for bp in data[:3]:
-        max_geodes = 0
-        dfs = [State(1, 0, 0, 0, 0, 0, 0, 0, 32, None)]
-        max_ore_robots = max(bp.ore_robot_cost, bp.clay_robot_cost, bp.obsidian_robot_ore_cost, bp.geode_robot_ore_cost)
-        max_clay_robots = bp.obsidian_robot_clay_cost
-        max_obsidian_robots = bp.geode_robot_obsidian_cost
-        while len(dfs):
-            state = dfs.pop()
-            max_geodes = max(max_geodes, state.geodes + state.geode_robots * state.time_left)
+def recursive(bp, time_limit):
+    def inner(time_left, robots, materials) -> int:
+        nonlocal max_geodes
 
-            if guess_geodes(state) < max_geodes:
-                continue
+        key = (*robots, *materials)
+        if key in time_memoization and time_left <= time_memoization[key]:
+            return
+        time_memoization[key] = time_left
 
-            if state.ore_robots and state.ore_robots < max_ore_robots: # buy ore-collecting robot
-                ore_needed = bp.ore_robot_cost - state.ores
-                time_needed = ceil(ore_needed / state.ore_robots) + 1
-                time_needed = time_needed if time_needed > 0 else 1
-                if state.time_left >= time_needed:
-                    dfs.append(state._replace(
-                        ore_robots=state.ore_robots + 1,
-                        ores=state.ores + state.ore_robots * time_needed - bp.ore_robot_cost,
-                        clay=state.clay + state.clay_robots * time_needed,
-                        obsidian=state.obsidian + state.obsidian_robots * time_needed,
-                        geodes=state.geodes + state.geode_robots * time_needed,
-                        time_left=state.time_left - time_needed,
-                        prev=state
-                    ))
+        key = (time_left, *robots, *materials[:3])
+        if key in geode_memoization and materials[3] <= geode_memoization[key]:
+            return
+        geode_memoization[key] = materials[3]
+
+        if time_left == 0: return 
+        if materials[3] + robots[3] * time_left + time_left * (time_left + 1) // 2 < max_geodes: return
+
+        max_geodes = max(max_geodes, materials[3] + robots[3] * time_left)
+
+        if robots[0] < max_ore: # buy ore-collecting robot
+            time_needed = max(
+                ceil((ore_cost - materials[0]) / robots[0]),
+                0
+            ) + 1
+            if time_needed <= time_left:
+                inner(
+                    time_left - time_needed,
+                    buy_robot(robots, ore=True),
+                    update_materials(materials, robots, time_needed, ore=ore_cost)
+                )
             
-            if state.ore_robots and state.clay_robots < max_clay_robots: # buy clay-collecting robot
-                ore_needed = bp.clay_robot_cost - state.ores
-                time_needed = ceil(ore_needed / state.ore_robots) + 1
-                time_needed = time_needed if time_needed > 0 else 1
-                if state.time_left >= time_needed:
-                    dfs.append(state._replace(
-                        clay_robots=state.clay_robots + 1,
-                        ores=state.ores + state.ore_robots * time_needed - bp.clay_robot_cost,
-                        clay=state.clay + state.clay_robots * time_needed,
-                        obsidian=state.obsidian + state.obsidian_robots * time_needed,
-                        geodes=state.geodes + state.geode_robots * time_needed,
-                        time_left=state.time_left - time_needed,
-                        prev=state
-                    ))
-            
-            if state.ore_robots and state.clay_robots and state.obsidian_robots < max_obsidian_robots: # buy obsidian-collecting robot
-                ore_needed = bp.obsidian_robot_ore_cost - state.ores
-                clay_needed = bp.obsidian_robot_clay_cost - state.clay
-                time_needed = max(
-                    ceil(ore_needed / state.ore_robots),
-                    ceil(clay_needed / state.clay_robots)
-                ) + 1
-                time_needed = time_needed if time_needed > 0 else 1
-                if state.time_left >= time_needed:
-                    dfs.append(state._replace(
-                        obsidian_robots=state.obsidian_robots + 1,
-                        ores=state.ores + state.ore_robots * time_needed - bp.obsidian_robot_ore_cost,
-                        clay=state.clay + state.clay_robots * time_needed - bp.obsidian_robot_clay_cost,
-                        obsidian=state.obsidian + state.obsidian_robots * time_needed,
-                        geodes=state.geodes + state.geode_robots * time_needed,
-                        time_left=state.time_left - time_needed,
-                        prev=state
-                    ))
+        if robots[1] < max_clay: # buy clay-collecting robot
+            time_needed = max(
+                ceil((clay_cost - materials[0]) / robots[0]),
+                0
+            ) + 1
+            if time_needed <= time_left:
+                inner(time_left - time_needed,
+                    buy_robot(robots, clay=True),
+                    update_materials(materials, robots, time_needed, ore=clay_cost)
+                )
+        
+        if robots[1] and robots[2] < max_obsidian: # buy obsidian-collecting robot
+            time_needed = max(
+                ceil((obsidian_ore_cost - materials[0]) / robots[0]),
+                ceil((obsidian_clay_cost - materials[1]) / robots[1]),
+                0
+            ) + 1
+            if time_needed <= time_left:
+                inner(time_left - time_needed,
+                    buy_robot(robots, obsidian=True),
+                    update_materials(materials, robots, time_needed, ore=obsidian_ore_cost, clay=obsidian_clay_cost)
+                )
 
-            if state.ore_robots and state.obsidian_robots: # buy geode-cracking robot
-                ore_needed = bp.geode_robot_ore_cost - state.ores
-                obsidian_needed = bp.geode_robot_obsidian_cost - state.obsidian
-                time_needed = max(
-                    ceil(ore_needed / state.ore_robots),
-                    ceil(obsidian_needed / state.obsidian_robots)
-                ) + 1
-                time_needed = time_needed if time_needed > 0 else 1
-                if state.time_left >= time_needed:
-                    dfs.append(state._replace(
-                        geode_robots=state.geode_robots + 1,
-                        ores=state.ores + state.ore_robots * time_needed - bp.geode_robot_ore_cost,
-                        clay=state.clay + state.clay_robots * time_needed,
-                        obsidian=state.obsidian + state.obsidian_robots * time_needed - bp.geode_robot_obsidian_cost,
-                        geodes=state.geodes + state.geode_robots * time_needed,
-                        time_left=state.time_left - time_needed,
-                        prev=state
-                    ))
-            
-        prod *= max_geodes
+        if robots[2]: # buy geode-cracking robot
+            time_needed = max(
+                ceil((geode_ore_cost - materials[0]) / robots[0]),
+                ceil((geode_obsidian_cost - materials[2]) / robots[2]),
+                0
+            ) + 1
+            if time_needed <= time_left:
+                inner(time_left - time_needed,
+                    buy_robot(robots, geode=True),
+                    update_materials(materials, robots, time_needed, ore=geode_ore_cost, obsidian=geode_obsidian_cost)
+                )
+        
+    ore_cost, clay_cost, obsidian_ore_cost, obsidian_clay_cost, geode_ore_cost, geode_obsidian_cost = bp
+    max_geodes = 0
+    max_ore = max(ore_cost, clay_cost, obsidian_ore_cost, geode_ore_cost)
+    max_clay = obsidian_clay_cost
+    max_obsidian = geode_obsidian_cost
+    time_memoization = {}
+    geode_memoization = {}
+    inner(time_limit, (1,0,0,0), (0,0,0,0))
+    return max_geodes
 
-    return prod
+def part1(data):
+    return sum([id * recursive(bp, 24) for id, *bp in data])
+
+def part2(data):  
+    return prod([recursive(bp, 32) for _, *bp in data[:3]])
 
 
 if __name__ == "__main__":
