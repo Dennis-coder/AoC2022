@@ -81,6 +81,8 @@ def part2(data):
         if score1 * 2 < best:
             return best
         for score2, order2 in scores[i+1:]:
+            if score1 + score2 < best:
+                break
             if not order1 & order2:
                 best = max(best, score1 + score2)
 
