@@ -31,30 +31,41 @@ def reset_nodes(nodes, order):
     start.prev = prev
     prev.next = start
 
+def move_node(node, prev, next):
+    # Cut out the node
+    node.prev.next = node.next
+    node.next.prev = node.prev
+
+    # Paste it back in
+    prev.next = node
+    next.prev = node
+    node.prev = prev
+    node.next = next
+
 def mix(nodes, order):
     length = len(order) - 1
+    mid = len(order) // 2
     for i, val in enumerate(order):
         key = (i,val)
         node = nodes[key]
         n = val%length
         if n == 0:
             continue
-        
-        temp = node
-        for _ in range(n):
-            temp = temp.next
-        prev = temp
-        next = temp.next
-        
-        # Cut out the node
-        node.prev.next = node.next
-        node.next.prev = node.prev
 
-        # Paste it back in
-        prev.next = node
-        next.prev = node
-        node.prev = prev
-        node.next = next
+        temp = node
+        if n < mid:
+            for _ in range(n):
+                temp = temp.next
+            prev = temp
+            next = temp.next
+        else:
+            for _ in range(length - n):
+                temp = temp.prev
+            prev = temp.prev
+            next = temp
+
+        move_node(node, prev, next)
+        
 
 def sum_grove_coordinates(nodes, order):
     idx = [i for i, val in enumerate(order) if val == 0][0]
