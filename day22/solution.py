@@ -4,10 +4,8 @@ import re
 
 PANE_SIZE = 50
 class Pane:
-    def __init__(self, pane, i, j, x, y):
+    def __init__(self, pane, x, y):
         self.pane = pane
-        self.i = i
-        self.j = j
         self.x = x
         self.y = y
         self.left = None
@@ -47,7 +45,7 @@ def parse():
             panes.append(Pane([
                 row[j * PANE_SIZE : (j+1) * PANE_SIZE]
                 for row in temp_map[i * PANE_SIZE : (i+1) * PANE_SIZE]
-            ], i, j, j*PANE_SIZE, i*PANE_SIZE))
+            ], j*PANE_SIZE, i*PANE_SIZE))
 
     return panes, directions
 
@@ -86,7 +84,6 @@ def run(directions, start_pane):
                 if x == PANE_SIZE:
                     x, y, facing = cur_pane.go_right(y)
                     cur_pane = cur_pane.right
-
 
             elif facing == 1: # Go down
                 new_y = y + 1
