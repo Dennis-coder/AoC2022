@@ -1,24 +1,7 @@
 from pathlib import Path
 import re
+from math import sqrt
 
-
-PANE_SIZE = 50
-class Pane:
-    def __init__(self, pane, x, y):
-        self.pane = pane
-        self.x = x
-        self.y = y
-        self.left = None
-        self.right = None
-        self.up = None
-        self.down = None
-        self.go_left = lambda y: (PANE_SIZE - 1, y, 2)
-        self.go_right = lambda y: (0, y, 0)
-        self.go_up = lambda x: (x, PANE_SIZE - 1, 3)
-        self.go_down = lambda x: (x, 0, 1)
-    
-    def __str__(self):
-        return f"({self.i}, {self.j})"
 
 def get_path():
     cur_dir = Path().resolve().name
@@ -35,186 +18,130 @@ def parse():
         int(el) if el.isnumeric() else el
         for el in re.findall("\d+|\D+", directions)
     ]
-    
+    pane_size = int(sqrt(sum([len(line.strip()) for line in map_str.splitlines()]) // 6))
     panes = []
+    coords = []
     temp_map = map_str.splitlines()
-    for i in range(len(temp_map) // PANE_SIZE):
-        for j in range(len(temp_map[i * PANE_SIZE]) // PANE_SIZE):
-            if temp_map[i * PANE_SIZE][j * PANE_SIZE] == " ":
+    for j in range(len(temp_map) // pane_size):
+        for i in range(len(temp_map[j * pane_size]) // pane_size):
+            if temp_map[j * pane_size][i * pane_size] == " ":
                 continue
-            panes.append(Pane([
-                row[j * PANE_SIZE : (j+1) * PANE_SIZE]
-                for row in temp_map[i * PANE_SIZE : (i+1) * PANE_SIZE]
-            ], j*PANE_SIZE, i*PANE_SIZE))
+            coords.append((i*pane_size, j*pane_size))
+            panes.append(set([
+                (x, y)
+                for y, row in enumerate(temp_map[j * pane_size : (j+1) * pane_size])
+                for x, char in enumerate(row[i * pane_size : (i+1) * pane_size])
+                if char == "#"
+            ]))
 
-    return panes, directions
+    return panes, coords, directions, pane_size
 
-turn_left = {
-    0: 3,
-    1: 0,
-    2: 1,
-    3: 2
-}
+def rotate_pos(x, y, relative_dir, pane_size):
+    if relative_dir == 0:
+        return x, y
+    if relative_dir == 1:
+        return y, pane_size - x - 1
+    if relative_dir == 2:
+        return pane_size - x - 1, pane_size - y - 1
+    if relative_dir == 3:
+        return pane_size - y - 1, x
 
-turn_right = {
-    0: 1,
-    1: 2,
-    2: 3,
-    3: 0
-}
+def move(x, y, facing):
+    if facing == 0: # Go right
+        return x+1, y
 
-def run(directions, start_pane):
-    x, y, facing, cur_pane = 0, 0, 0, start_pane
+    if facing == 1: # Go down
+        return x, y+1
+
+    if facing == 2: # Go left
+        return x-1, y
+
+    if facing == 3: # Go up
+        return x, y-1
+
+def run(directions, panes, wrapping, pane_size):
+    x, y, facing, cur_pane, pane_idx = 0, 0, 0, panes[0], 0
     for dir in directions:
         if dir == "R":
-            facing = turn_right[facing]
+            facing = (facing+1) % 4
             continue
         if dir == "L":
-            facing = turn_left[facing]
+            facing = (facing-1) % 4
             continue
 
         for _ in range(dir):
-            if facing == 0: # Go right
-                new_x = x + 1
-                x1, y1, _ = cur_pane.go_right(y)
-                if (new_x == PANE_SIZE and cur_pane.right.pane[y1][x1] == "#") \
-                or (new_x < PANE_SIZE and cur_pane.pane[y][new_x] == "#"):
-                    break
-                x = new_x
-                if x == PANE_SIZE:
-                    x, y, facing = cur_pane.go_right(y)
-                    cur_pane = cur_pane.right
+            new_x, new_y = move(x, y, facing)
 
-            elif facing == 1: # Go down
-                new_y = y + 1
-                x1, y1, _ = cur_pane.go_down(x)
-                if (new_y == PANE_SIZE and cur_pane.down.pane[y1][x1] == "#") \
-                or (new_y < PANE_SIZE and cur_pane.pane[new_y][x] == "#"):
-                    break
-                y = new_y
-                if y == PANE_SIZE:
-                    x, y, facing = cur_pane.go_down(x)
-                    cur_pane = cur_pane.down
+            if (new_x, new_y) in cur_pane:
+                break
 
-            elif facing == 2: # Go left
-                new_x = x - 1
-                x1, y1, _ = cur_pane.go_left(y)
-                if (new_x == -1 and cur_pane.left.pane[y1][x1] == "#") \
-                or (new_x >= 0 and cur_pane.pane[y][new_x] == "#"):
-                    break
-                x = new_x
-                if x == -1:
-                    x, y, facing = cur_pane.go_left(y)
-                    cur_pane = cur_pane.left
+            if 0 <= new_x < pane_size and 0 <= new_y < pane_size:
+                x, y = new_x, new_y
+                continue
 
-            elif facing == 3: # Go up
-                new_y = y - 1
-                x1, y1, _ = cur_pane.go_up(x)
-                if (new_y == -1 and cur_pane.up.pane[y1][x1] == "#") \
-                or (new_y >= 0 and cur_pane.pane[new_y][x] == "#"):
-                    break
-                y = new_y
-                if y == -1:
-                    x, y, facing = cur_pane.go_up(x)
-                    cur_pane = cur_pane.up
-    return x, y, facing, cur_pane
+            new_pane_idx, relative_dir = wrapping[pane_idx][facing]
+            new_x, new_y = rotate_pos(new_x % pane_size, new_y % pane_size, relative_dir, pane_size)
+
+            if (new_x, new_y) in panes[new_pane_idx]:
+                break
+            
+            x, y = new_x, new_y
+            facing = (facing - relative_dir) % 4
+            cur_pane = panes[new_pane_idx]
+            pane_idx = new_pane_idx
+
+    return x, y, facing, pane_idx
 
 def part1(data):
-    panes, directions = data
-    
-    panes[0].right = panes[1]
-    panes[0].left  = panes[1]
-    panes[0].up    = panes[4]
-    panes[0].down  = panes[2]
-    
-    panes[1].right = panes[0]
-    panes[1].left  = panes[0]
-    panes[1].up    = panes[1]
-    panes[1].down  = panes[1]
-    
-    panes[2].right = panes[2]
-    panes[2].left  = panes[2]
-    panes[2].up    = panes[0]
-    panes[2].down  = panes[4]
-    
-    panes[3].right = panes[4]
-    panes[3].left  = panes[4]
-    panes[3].up    = panes[5]
-    panes[3].down  = panes[5]
-    
-    panes[4].right = panes[3]
-    panes[4].left  = panes[3]
-    panes[4].up    = panes[2]
-    panes[4].down  = panes[0]
-    
-    panes[5].right = panes[5]
-    panes[5].left  = panes[5]
-    panes[5].up    = panes[3]
-    panes[5].down  = panes[3]
+    panes, coords, directions, pane_size = data
 
-    x, y, facing, cur_pane = run(directions, panes[0])
-    
-    return 1000 * (cur_pane.y+y+1) + 4 * (cur_pane.x+x+1) + facing
+    wrapping = [
+        [(1,0), (2,0), (1,0), (4,0)],
+        [(0,0), (1,0), (0,0), (1,0)],
+        [(2,0), (4,0), (2,0), (0,0)],
+        [(4,0), (5,0), (4,0), (5,0)],
+        [(3,0), (0,0), (3,0), (2,0)],
+        [(5,0), (3,0), (5,0), (3,0)]
+    ]
+
+    # test_wrapping = [
+    #     [(0,0), (3,0), (0,0), (4,0)],
+    #     [(2,0), (1,0), (3,0), (1,0)],
+    #     [(3,0), (2,0), (1,0), (2,0)],
+    #     [(1,0), (4,0), (2,0), (0,0)],
+    #     [(5,0), (0,0), (5,0), (3,0)],
+    #     [(4,0), (5,0), (4,0), (5,0)]
+    # ]
+
+    x, y, facing, pane = run(directions, panes, wrapping, pane_size)
+    dx, dy = coords[pane]
+
+    return 1000 * (y+dy+1) + 4 * (x+dx+1) + facing
 
 def part2(data):
-    panes, directions = data
-    
-    panes[0].right = panes[1]
-    panes[0].go_right = lambda y: (0, y, 0)
-    panes[0].left  = panes[3]
-    panes[0].go_left = lambda y: (0, PANE_SIZE - y - 1, 0)
-    panes[0].up    = panes[5]
-    panes[0].go_up = lambda x: (0, x, 0)
-    panes[0].down  = panes[2]
-    panes[0].go_down = lambda x: (x, 0, 1)
-    
-    panes[1].right = panes[4]
-    panes[1].go_right = lambda y: (PANE_SIZE - 1, PANE_SIZE - y - 1, 2)
-    panes[1].left  = panes[0]
-    panes[1].go_left = lambda y: (PANE_SIZE - 1, y, 2)
-    panes[1].up    = panes[5]
-    panes[1].go_up = lambda x: (x, PANE_SIZE - 1, 3)
-    panes[1].down  = panes[2]
-    panes[1].go_down = lambda x: (PANE_SIZE - 1, x, 2)
-    
-    panes[2].right = panes[1]
-    panes[2].go_right = lambda y: (y, PANE_SIZE - 1, 3)
-    panes[2].left  = panes[3]
-    panes[2].go_left = lambda y: (y, 0, 1)
-    panes[2].up    = panes[0]
-    panes[2].go_up = lambda x: (x, PANE_SIZE - 1, 3)
-    panes[2].down  = panes[4]
-    panes[2].go_down = lambda x: (x, 0, 1)
-    
-    panes[3].right = panes[4]
-    panes[3].go_right = lambda y: (0, y, 0)
-    panes[3].left  = panes[0]
-    panes[3].go_left = lambda y: (0, PANE_SIZE - y - 1, 0)
-    panes[3].up    = panes[2]
-    panes[3].go_up = lambda x: (0, x, 0)
-    panes[3].down  = panes[5]
-    panes[3].go_down = lambda x: (x, 0, 1)
-    
-    panes[4].right = panes[1]
-    panes[4].go_right = lambda y: (PANE_SIZE - 1, PANE_SIZE - y - 1, 2)
-    panes[4].left  = panes[3]
-    panes[4].go_left = lambda y: (PANE_SIZE - 1, y, 2)
-    panes[4].up    = panes[2]
-    panes[4].go_up = lambda x: (x, PANE_SIZE - 1, 3)
-    panes[4].down  = panes[5]
-    panes[4].go_down = lambda x: (PANE_SIZE - 1, x, 2)
-    
-    panes[5].right = panes[4]
-    panes[5].go_right = lambda y: (y, PANE_SIZE - 1, 3)
-    panes[5].left  = panes[0]
-    panes[5].go_left = lambda y: (y, 0, 1)
-    panes[5].up    = panes[3]
-    panes[5].go_up = lambda x: (x, PANE_SIZE - 1, 3)
-    panes[5].down  = panes[1]
-    panes[5].go_down = lambda x: (x, 0, 1)
+    panes, coords, directions, pane_size = data
 
-    x, y, facing, cur_pane = run(directions, panes[0])
-    return 1000 * (cur_pane.y+y+1) + 4 * (cur_pane.x+x+1) + facing
+    wrapping = [
+        [(1,0), (2,0), (3,2), (5,3)],
+        [(4,2), (2,3), (0,0), (5,0)],
+        [(1,1), (4,0), (3,1), (0,0)],
+        [(4,0), (5,0), (0,2), (2,3)],
+        [(1,2), (5,3), (3,0), (2,0)],
+        [(4,1), (1,0), (0,1), (3,0)]
+    ]
+
+    # test_wrapping = [
+    #     [(5,2), (3,0), (2,1), (1,2)],
+    #     [(2,0), (4,2), (5,3), (0,2)],
+    #     [(3,0), (4,1), (1,0), (0,3)],
+    #     [(5,3), (4,0), (2,0), (0,0)],
+    #     [(5,0), (1,2), (2,3), (3,0)],
+    #     [(0,2), (1,1), (4,0), (3,1)]
+    # ]
+
+    x, y, facing, pane = run(directions, panes, wrapping, pane_size)
+    dx, dy = coords[pane]
+    return 1000 * (y+dy+1) + 4 * (x+dx+1) + facing
 
 
 if __name__ == "__main__":
