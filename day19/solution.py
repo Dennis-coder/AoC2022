@@ -1,18 +1,10 @@
-from pathlib import Path
 import re
 from math import ceil, prod
 
 
-def get_path():
-    cur_dir = Path().resolve().name
-    if cur_dir == "AoC2022":
-        return f"{Path(__file__).parent.name}/indata.txt"
-    else:
-        return "indata.txt"
-
-def parse():
+def parse(file_name):
     pattern = re.compile("Blueprint (\d+): Each ore robot costs (\d+) ore. Each clay robot costs (\d+) ore. Each obsidian robot costs (\d+) ore and (\d+) clay. Each geode robot costs (\d+) ore and (\d+) obsidian.")
-    with open(get_path(), "r") as file:
+    with open(file_name, "r") as file:
         data = [
             [
                 int(x) 
@@ -114,9 +106,3 @@ def part1(data):
 
 def part2(data):  
     return prod([recursive(bp, 32) for _, *bp in data[:3]])
-
-
-if __name__ == "__main__":
-    data = parse()
-    print(part1(data))
-    print(part2(data))

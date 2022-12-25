@@ -1,24 +1,20 @@
-from pathlib import Path
-
+def parse(file_name):
+    with open(file_name, "r") as file:
+        data = [
+            int(x) 
+            for x in file.read().splitlines()
+        ]
+    nodes = {
+        (i,val): Node(val) 
+        for i, val in enumerate(data)
+    }
+    return nodes, data
 
 class Node:
     def __init__(self, val):
         self.val = val
         self.prev = None
         self.next = None
-
-def get_path():
-    cur_dir = Path().resolve().name
-    if cur_dir == "AoC2022":
-        return f"{Path(__file__).parent.name}/indata.txt"
-    else:
-        return "indata.txt"
-
-def parse():
-    with open(get_path(), "r") as file:
-        data = [int(x) for x in file.read().splitlines()]
-    nodes = {(i,val):Node(val) for i, val in enumerate(data)}
-    return nodes, data
 
 def reset_nodes(nodes, order):
     start = nodes[(0, order[0])]
@@ -97,9 +93,3 @@ def part2(data):
         mix(nodes, order)
 
     return sum_grove_coordinates(nodes, order)
-
-
-if __name__ == "__main__":
-    data = parse()
-    print(part1(data))
-    print(part2(data))

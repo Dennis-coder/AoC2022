@@ -1,17 +1,9 @@
-from pathlib import Path
 import re
 from math import sqrt
 
 
-def get_path():
-    cur_dir = Path().resolve().name
-    if cur_dir == "AoC2022":
-        return f"{Path(__file__).parent.name}/indata.txt"
-    else:
-        return "indata.txt"
-
-def parse():
-    with open(get_path(), "r") as file:
+def parse(file_name):
+    with open(file_name, "r") as file:
         map_str, directions = file.read().split("\n\n")
 
     directions = [
@@ -142,9 +134,3 @@ def part2(data):
     x, y, facing, pane = run(directions, panes, wrapping, pane_size)
     dx, dy = coords[pane]
     return 1000 * (y+dy+1) + 4 * (x+dx+1) + facing
-
-
-if __name__ == "__main__":
-    data = parse()
-    print(part1(data))
-    print(part2(data))

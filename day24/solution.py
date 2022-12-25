@@ -1,17 +1,9 @@
-from pathlib import Path
 from queue import PriorityQueue
-from functools import lru_cache
+from functools import cache
 
 
-def get_path():
-    cur_dir = Path().resolve().name
-    if cur_dir == "AoC2022":
-        return f"{Path(__file__).parent.name}/indata.txt"
-    else:
-        return "indata.txt"
-
-def parse():
-    with open(get_path(), "r") as file:
+def parse(file_name):
+    with open(file_name, "r") as file:
         data = file.read().splitlines()
     
     start = (data[0].index("."), 0)
@@ -44,7 +36,7 @@ def moves(x, y):
     yield x, y-1
 
 def astar(start, goal, maze, blizzards_start, start_minute):
-    @lru_cache
+    @cache
     def blizzards(minute):
         return set([
             ((x+dx*minute-1)%(len(maze[0])-2)+1, (y+dy*minute-1)%(len(maze)-2)+1)
@@ -79,22 +71,12 @@ def astar(start, goal, maze, blizzards_start, start_minute):
 
 def part1(data):
     maze, blizzards_start, start, goal = data
-
     minutes = astar(start, goal, maze, blizzards_start, 0)
-    
     return minutes
 
 def part2(data):
     maze, blizzards_start, start, goal = data
-
     minutes = astar(start, goal, maze, blizzards_start, 0)
     minutes = astar(goal, start, maze, blizzards_start, minutes)
     minutes = astar(start, goal, maze, blizzards_start, minutes)
-    
     return minutes
-
-
-if __name__ == "__main__":
-    data = parse()
-    print(part1(data))
-    print(part2(data))

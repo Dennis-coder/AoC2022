@@ -1,42 +1,16 @@
-from pathlib import Path
-
-
-def get_path():
-    cur_dir = Path().resolve().name
-    if cur_dir == "AoC2022":
-        return f"{Path(__file__).parent.name}/indata.txt"
-    else:
-        return "indata.txt"
-
-def parse():
-    with open(get_path(), "r") as file:
-        data = [row.split() for row in file.read().split("\n")]
-    for row in data:
-        row[1] = int(row[1])
+def parse(file_name):
+    with open(file_name, "r") as file:
+        data = [
+            (dir, int(n))
+            for dir, n in [
+                row.split() 
+                for row in file.read().splitlines()
+            ]
+        ]
     return data
 
-def part1(data):
-    hx = hy = tx = ty = 0
-    visited = {(tx, ty)}
-    switch = {
-        "L": (-1, 0),
-        "R": (1, 0),
-        "U": (0, 1),
-        "D": (0, -1),
-    }
-    for dir, n in data:
-        dx, dy = switch[dir]
-        for _ in range(n):
-            hx += dx
-            hy += dy
-            if abs(hx - tx) > 1 or abs(hy - ty) > 1:
-                tx = hx - dx
-                ty = hy - dy
-                visited.add((tx, ty))
-    return len(visited)
-
-def part2(data):
-    knots = [[0,0] for _ in range(10)]
+def simulate(knots_amount, data):
+    knots = [[0,0] for _ in range(knots_amount)]
     visited = {(0,0)}
     head = knots[0]
     switch = {
@@ -62,8 +36,8 @@ def part2(data):
     
     return len(visited)
 
+def part1(data):
+    return simulate(2, data)
 
-if __name__ == "__main__":
-    data = parse()
-    print(part1(data))
-    print(part2(data))
+def part2(data):
+    return simulate(10, data)

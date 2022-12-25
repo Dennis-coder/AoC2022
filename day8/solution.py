@@ -1,16 +1,9 @@
-from pathlib import Path
-
-
-def get_path():
-    cur_dir = Path().resolve().name
-    if cur_dir == "AoC2022":
-        return f"{Path(__file__).parent.name}/indata.txt"
-    else:
-        return "indata.txt"
-
-def parse():
-    with open(get_path(), "r") as file:
-        data = [[int(x) for x in row] for row in file.read().split("\n")]
+def parse(file_name):
+    with open(file_name, "r") as file:
+        data = [
+            list(map(int, row))
+            for row in file.read().splitlines()
+        ]
     return data
 
 def part1(data):
@@ -71,9 +64,3 @@ def part2(data):
             best_score = max(best_score, score)
     
     return best_score
-
-
-if __name__ == "__main__":
-    data = parse()
-    print(part1(data))
-    print(part2(data))

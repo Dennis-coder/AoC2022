@@ -1,15 +1,5 @@
-from pathlib import Path
-
-
-def get_path():
-    cur_dir = Path().resolve().name
-    if cur_dir == "AoC2022":
-        return f"{Path(__file__).parent.name}/indata.txt"
-    else:
-        return "indata.txt"
-
-def parse():
-    with open(get_path(), "r") as file:
+def parse(file_name):
+    with open(file_name, "r") as file:
         data = [row.split() for row in file.read().split("\n")]
 
     tree = []
@@ -36,9 +26,3 @@ def part1(nodes):
 def part2(nodes):
     needed = nodes["/"] - 40000000
     return min([node for node in nodes.values() if node > needed])
-
-
-if __name__ == "__main__":
-    data = parse()
-    print(part1(data))
-    print(part2(data))

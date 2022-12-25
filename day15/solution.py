@@ -1,18 +1,11 @@
-from pathlib import Path
 import re
 
 
-def get_path():
-    cur_dir = Path().resolve().name
-    if cur_dir == "AoC2022":
-        return f"{Path(__file__).parent.name}/indata.txt"
-    else:
-        return "indata.txt"
-
-def parse():
+def parse(file_name):
     def manhattan(p, q):
         return abs(p[0] - q[0]) + abs(p[1] - q[1])
-    with open(get_path(), "r") as file:
+        
+    with open(file_name, "r") as file:
         data = [
             (sensor, beacon, manhattan(sensor, beacon))
             for sensor, beacon in [
@@ -63,8 +56,3 @@ def part2(data):
     q = [a+1 for a,b in zip(qq,qq[1:]) if b-a==2][0]
     x, y = pq_to_xy(p, q)
     return x*4_000_000 + y
-
-if __name__ == "__main__":
-    data = parse()
-    print(part1(data))
-    print(part2(data))

@@ -1,13 +1,6 @@
-from pathlib import Path
 import re
 from queue import Queue
 
-def get_path():
-    cur_dir = Path().resolve().name
-    if cur_dir == "AoC2022":
-        return f"{Path(__file__).parent.name}/indata.txt"
-    else:
-        return "indata.txt"
 
 def calc_dist(tunnels, from_valve, to_valve):
     bfs = Queue()
@@ -24,8 +17,8 @@ def calc_dist(tunnels, from_valve, to_valve):
         for n_valve in tunnels[valve]:
             bfs.put((n_valve, steps))
 
-def parse():
-    with open(get_path(), "r") as file:
+def parse(file_name):
+    with open(file_name, "r") as file:
         data = {
             name: {
                 "flow_rate": int(flow_rate), 
@@ -85,8 +78,3 @@ def part2(data):
                 break
             if not order1 & order2:
                 best = max(best, score1 + score2)
-
-if __name__ == "__main__":
-    data = parse()
-    print(part1(data))
-    print(part2(data))

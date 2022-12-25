@@ -1,15 +1,5 @@
-from pathlib import Path
-
-
-def get_path():
-    cur_dir = Path().resolve().name
-    if cur_dir == "AoC2022":
-        return f"{Path(__file__).parent.name}/indata.txt"
-    else:
-        return "indata.txt"
-
-def parse():
-    with open(get_path(), "r") as file:
+def parse(file_name):
+    with open(file_name, "r") as file:
         data = set([
             (x, y)
             for y, line in enumerate(file.read().splitlines())
@@ -71,8 +61,7 @@ def simulate_round(elves, round):
         bool(len(proposed_moves_set))
     )
 
-def part1(data):
-    elves = data
+def part1(elves):
     for round in range(10):
         elves, _ = simulate_round(elves, round)
     
@@ -82,17 +71,10 @@ def part1(data):
     y_max = max(y for _,y in elves)
     return  (x_max - x_min + 1) * (y_max - y_min + 1) - len(elves) 
 
-def part2(data):
-    elves = data
+def part2(elves):
     round = 0
-    while True:
+    moved = True
+    while moved:
         elves, moved = simulate_round(elves, round)
-        if not moved:
-            break
         round += 1
-    return round + 1
-
-if __name__ == "__main__":
-    data = parse()
-    print(part1(data))
-    print(part2(data))
+    return round

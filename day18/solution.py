@@ -1,17 +1,12 @@
-from pathlib import Path
 from queue import Queue
 
 
-def get_path():
-    cur_dir = Path().resolve().name
-    if cur_dir == "AoC2022":
-        return f"{Path(__file__).parent.name}/indata.txt"
-    else:
-        return "indata.txt"
-
-def parse():
-    with open(get_path(), "r") as file:
-        data = set([tuple([int(x) for x in line.split(",")]) for line in file.read().split("\n")])
+def parse(file_name):
+    with open(file_name, "r") as file:
+        data = set([
+            tuple(map(int, line.split(",")))
+            for line in file.read().split("\n")
+        ])
     return data
 
 def neighbours(point):
@@ -57,8 +52,3 @@ def part2(data):
         for neighbour in neighbours(cur):
             bfs.put(neighbour)
     return count
-
-if __name__ == "__main__":
-    data = parse()
-    print(part1(data))
-    print(part2(data))

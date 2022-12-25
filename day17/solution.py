@@ -1,10 +1,12 @@
-from pathlib import Path
-
+def parse(file_type):
+    with open(file_type, "r") as file:
+        data = [
+            move_left if char == "<" else move_right 
+            for char in file.read().strip()
+        ]
+    return data
 
 def Shape1(y): 
-    """
-    ####
-    """
     return set([
         (2,y), 
         (3,y), 
@@ -13,11 +15,6 @@ def Shape1(y):
     ])
 
 def Shape2(y):
-    """
-    .#.
-    ###
-    .#.
-    """
     return set([
         (3,y+2),
         (2,y+1),
@@ -27,11 +24,6 @@ def Shape2(y):
     ])
 
 def Shape3(y):
-    """
-    ..#
-    ..#
-    ###
-    """
     return set([
         (4,y+2),
         (4,y+1),
@@ -41,12 +33,6 @@ def Shape3(y):
     ])
 
 def Shape4(y):
-    """
-    #
-    #
-    #
-    #
-    """
     return set([
         (2,y+3),
         (2,y+2),
@@ -55,10 +41,6 @@ def Shape4(y):
     ])
 
 def Shape5(y):
-    """
-    ##
-    ##
-    """
     return set([
         (2,y+1),
         (3,y+1),
@@ -83,27 +65,15 @@ def is_valid_move(game, shape):
         if point[1] == 0: return False
     return True
 
-def get_path():
-    cur_dir = Path().resolve().name
-    if cur_dir == "AoC2022":
-        return f"{Path(__file__).parent.name}/indata.txt"
-    else:
-        return "indata.txt"
-
-def parse():
-    with open(get_path(), "r") as file:
-        data = [move_left if char == "<" else move_right for char in file.read().strip()]
-    shape_switch = {
+def part1(data):
+    moves = data
+    shapes = {
         0: Shape1,
         1: Shape2,
         2: Shape3,
         3: Shape4,
         4: Shape5,
     }
-    return data, shape_switch
-
-def part1(data):
-    moves, shapes = data
     i_shape = 0
     i_jet = 0
     y = 0
@@ -129,7 +99,14 @@ def part1(data):
     return y
 
 def part2(data):
-    moves, shapes = data
+    moves = data
+    shapes = {
+        0: Shape1,
+        1: Shape2,
+        2: Shape3,
+        3: Shape4,
+        4: Shape5,
+    }
     i_shape = 0
     i_moves = 0
     y = 0
@@ -166,8 +143,3 @@ def part2(data):
     cycle_len = cycle[1][0] - cycle[0][0]
     cycle_val = cycle[1][1] - cycle[0][1]
     return n // cycle_len * cycle_val + y_vals[n % cycle_len]
-
-if __name__ == "__main__":
-    data = parse()
-    print(part1(data))
-    print(part2(data))

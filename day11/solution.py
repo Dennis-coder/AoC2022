@@ -1,27 +1,22 @@
-from pathlib import Path
 from math import prod
 
 
-def get_path():
-    cur_dir = Path().resolve().name
-    if cur_dir == "AoC2022":
-        return f"{Path(__file__).parent.name}/indata.txt"
-    else:
-        return "indata.txt"
-
-def parse():
-    with open(get_path(), "r") as file:
-        data = [monkey.splitlines() for monkey in file.read().split("\n\n")]
-
-    for i, monkey_data in enumerate(data):
-        items = []
-        op_str = "".join(monkey_data[2].replace("Operation: new = ", "").split())
-        test_op = int(monkey_data[3].split()[-1])
-        if_true = int(monkey_data[4].split()[-1])
-        if_false = int(monkey_data[5].split()[-1])
-        start_items = tuple([int(item) for item in monkey_data[1].replace("Starting items: ", "").split(", ")])
-        data[i] = (items, op_str, test_op, if_true, if_false, start_items)
-
+def parse(file_name):
+    with open(file_name, "r") as file:
+        data = [
+            (
+                [], 
+                "".join(monkey_data[2].replace("Operation: new = ", "").split()), 
+                int(monkey_data[3].split()[-1]), 
+                int(monkey_data[4].split()[-1]), 
+                int(monkey_data[5].split()[-1]), 
+                tuple([int(item) for item in monkey_data[1].replace("Starting items: ", "").split(", ")])
+            )
+            for i, monkey_data in enumerate([
+                monkey.splitlines() 
+                for monkey in file.read().split("\n\n")
+            ])
+        ]
     return data
 
 def part1(monkeys):
@@ -59,9 +54,3 @@ def part2(monkeys):
             items.clear()
     nr_of_inspections = sorted(inspections, reverse=True)
     return nr_of_inspections[0] * nr_of_inspections[1]
-
-
-if __name__ == "__main__":
-    data = parse()
-    print(part1(data))
-    print(part2(data))
