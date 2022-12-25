@@ -1,0 +1,12 @@
+{
+    "test": {
+        "test_data": true,
+        "part1": "2=-1=0",
+        "part2": null
+    },
+    "input": {
+        "test_data": false,
+        "part1": "2-==10===-12=2-1=-=0",
+        "part2": null
+    }
+}

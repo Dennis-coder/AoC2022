@@ -1,87 +1,68 @@
 import sys
-from importlib import import_module
-from time import perf_counter
-from pathlib import Path
-from helpers import timer, time_str
+from bench import *
+from dev import *
 
-def bench_all():
-    start = perf_counter()
-    day = 1
-    while Path(f"day{day}").exists():
-        module = import_module(f"day{day}.solution")
+def bench_solutions():
+    if len(sys.argv) < 3:
+        print("You need to specify which day(s) to bench")
+        return
+    if sys.argv[2].isnumeric() and not 1 <= int(sys.argv[2]) <= 25:
+        print("The argument should be a number between 1-25 or 'all'")
+        return 
+    if len(sys.argv) > 3 and sys.argv[3].lower() != "part1" and sys.argv[3].lower() != "part2":
+        print("Third argument should be either 'part1' or 'part2'")
+        return
 
-        print(f"Day {day}" + ("" if day > 9 else " ") , end="")
+    day = sys.argv[2].lower()
+    if day == "all":
+        bench_all()
+    elif len(sys.argv) == 3:
+        bench_one(int(day))
+    elif sys.argv[3] == "part1":
+        bench_part1(int(day))
+    elif sys.argv[3] == "part2":
+        bench_part2(int(day))
 
-        data, refacor_time = timer(module.parse)(f"day{day}/input.txt")
-        print(" | Parse: " + " " * (10 - len(time_str(refacor_time))) + f"{time_str(refacor_time)}", end="")
+def assert_solutions():
+    pass
 
-        _, part1_time = timer(module.part1)(data)
-        print(" | Part 1: " + (" " * (10 - len(time_str(part1_time)))) + f"{time_str(part1_time)}", end="")
+def dev_solutions():
+    if len(sys.argv) < 3:
+        print("You need to specify which day(s) to bench")
+        return
+    if not sys.argv[2].isnumeric() or not 1 <= int(sys.argv[2]) <= 25:
+        print("The argument should be a number between 1-25 or")
+        return 
+    if len(sys.argv) > 3 and sys.argv[3].lower() not in ("part1", "part2", "test"):
+        print("Third argument should be either 'part1', 'part2' or 'test'")
+        return
 
-        _, part2_time = timer(module.part2)(data)
-        print(" | Part 2: " + (" " * (10 - len(time_str(part2_time)))) + f"{time_str(part2_time)}", end="")
+    day = int(sys.argv[2].lower())
+    use_test_data = len(sys.argv) == 4 and sys.argv[3].lower() == "test" or len(sys.argv) == 5 and sys.argv[4].lower() == "test"
+    if len(sys.argv) < 5:
+        dev_day(day, use_test_data)
+    elif sys.argv[3] == "part1":
+        dev_part1(day, use_test_data)
+    elif sys.argv[3] == "part2":
+        dev_part2(day, use_test_data)
 
-        total_time = refacor_time + part1_time + part2_time
-        print(" | Total: " + (" " * (10 - len(time_str(total_time)))) + f"{time_str(total_time)}", end="")
-        
-        running_total = perf_counter() - start
-        print(" | Running total: " + (" " * (10 - len(time_str(running_total)))) + f"{time_str(running_total)}")
-
-        day += 1
-
-def bench_one(day):
-    module = import_module(f"day{day}.solution")
-
-    print(f"Refactor")
-    data, refacor_time = timer(module.parse)(f"day{day}/input.txt")
-    print(f"Time: {time_str(refacor_time)}")
-    print()
-
-    print("Part 1")
-    part1_res, part1_time = timer(module.part1)(data)
-    print(f"Time:   {time_str(part1_time)}")
-    print(f"Result: {part1_res}")
-    print()
-
-    print("Part 2")
-    part2_res, part2_time = timer(module.part2)(data)
-    print(f"Time:   {time_str(part2_time)}")
-    print(f"Result: {part2_res}")
-    print()
-
-    print(f"Total time: {time_str(refacor_time + part1_time + part2_time)}")
-    print()
-
-def bench_part1(day):
-    module = import_module(f"day{day}.solution")
-    data, _ = timer(module.parse)(f"day{day}/input.txt")
-    
-    print("Part 1")
-    part1_res, part1_time = timer(module.part1)(data)
-    print(f"Time:   {time_str(part1_time)}")
-    print(f"Result: {part1_res}")
-    print()
-
-def bench_part2(day):
-    module = import_module(f"day{day}.solution")
-    data, _ = timer(module.parse)(f"day{day}/input.txt")
-    
-    print("Part 2")
-    part2_res, part2_time = timer(module.part2)(data)
-    print(f"Time:   {time_str(part2_time)}")
-    print(f"Result: {part2_res}")
-    print()
+def main():
+    if len(sys.argv) < 2:
+        print("Need to specify which action to perform. The options are:")
+        print("bench  - times the solutions for the given day")
+        print("assert - tests the solutions for the given day")
+        print("dev    - used when writing a solution")
+    elif sys.argv[1].lower() == "bench":
+        bench_solutions()
+    elif sys.argv[1].lower() == "assert":
+        assert_solutions()
+    elif sys.argv[1].lower() == "dev":
+        dev_solutions()
+    else:
+        print(f"{sys.argv[1]} is not a recognized action. The options are:")
+        print("bench  - times the solutions for the given day")
+        print("assert - tests the solutions for the given day")
+        print("dev    - used when writing a solution")
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Need to specify which day you want to run")
-    elif sys.argv[1].lower() == "all":
-        bench_all()
-    elif not sys.argv[1].isnumeric() or not (1 <= int(sys.argv[1]) <= 25):
-        print("The argument should be a number between 1-25 or 'all'")
-    elif len(sys.argv) == 2:
-        bench_one(int(sys.argv[1]))
-    elif sys.argv[2] == "part1":
-        bench_part1(int(sys.argv[1]))
-    elif sys.argv[2] == "part2":
-        bench_part2(int(sys.argv[1]))
+    main()

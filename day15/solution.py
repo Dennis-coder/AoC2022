@@ -18,9 +18,8 @@ def parse(file_name):
         ]
     return data
 
-def part1(data):
+def part1(data, y = 2000000):
     intervals = []
-    y = 2000000
     for sensor, _, manhattan in data:
         distance_to_y = abs(y - sensor[1])
         if distance_to_y > manhattan:

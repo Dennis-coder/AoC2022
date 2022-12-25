@@ -1,0 +1,12 @@
+{
+    "test": {
+        "test_data": true,
+        "part1": 152,
+        "part2": 301
+    },
+    "input": {
+        "test_data": false,
+        "part1": 157714751182692,
+        "part2": 3373767893067
+    }
+}

@@ -51,15 +51,13 @@ def simulate(cave):
                 break
         
         if sand_x == 500 and sand_y == 0:
-            break
+            return units_of_sand + 1
         elif x1 <= sand_x <= x2 and y1 <= sand_y <= y2:
             cave[(sand_x, sand_y)] = 2
             units_of_sand += 1
         else:
-            break
-
-    return units_of_sand
-
+            return units_of_sand
+            
 def part1(data):
     cave = deepcopy(data)
     return simulate(cave)
